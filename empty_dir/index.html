@@ -1,0 +1,219 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TruAwake - AI Drowsiness Detection</title>
+    <link rel="manifest" href="./metadata.json">
+    <meta name="theme-color" content="#020617">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TruAwake">
+    <link rel="apple-touch-icon" href="./vite.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <style>
+      html, body, #root {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+      }
+      body {
+        font-family: 'Poppins', sans-serif;
+        transition: background-color 0.3s, color 0.3s;
+        /* Subtle noise texture for premium feel */
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+      }
+
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.3);
+        border-radius: 10px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(148, 163, 184, 0.5);
+      }
+
+      /* Dark Theme (Default) */
+      .bg-pro-gradient {
+        background-color: #020617; /* slate-950 */
+        background-image: radial-gradient(at 50% 10%, #1e293b 0px, transparent 50%);
+      }
+
+      /* Light Theme Overrides */
+      html.light body {
+        background-color: #f1f5f9; /* slate-100 */
+        color: #1e293b; /* slate-800 */
+      }
+      html.light .bg-slate-950 { background-color: #f1f5f9 !important; }
+      html.light .text-slate-200 { color: #1e293b; }
+      html.light .text-white { color: #1e293b; }
+      html.light .text-slate-100 { color: #0f172a; }
+      html.light .text-slate-300 { color: #475569; }
+      html.light .text-slate-400 { color: #64748b; }
+      html.light .text-slate-500 { color: #64748b; }
+      html.light .text-blue-300 { color: #3b82f6; }
+      html.light .bg-pro-gradient {
+        background-color: #f8fafc; /* slate-50 */
+        background-image: radial-gradient(at 50% 10%, #e2e8f0 0px, transparent 50%);
+      }
+      html.light .bg-slate-900\/70 { background-color: rgba(255,255,255,0.7); }
+      html.light .border-slate-700\/50 { border-color: rgba(203, 213, 225, 0.5); }
+      html.light .bg-slate-800,
+      html.light .bg-slate-800\/80,
+      html.light .bg-slate-800\/60,
+      html.light .bg-slate-800\/50 {
+        background-color: #e2e8f0; /* slate-200 */
+      }
+       html.light .hover\:bg-slate-800:hover,
+       html.light .hover\:bg-slate-800\/90:hover,
+       html.light .hover\:bg-slate-800\/60:hover {
+        background-color: #cbd5e1; /* slate-300 */
+      }
+      html.light .bg-slate-800 input, html.light input.bg-slate-800 {
+         background-color: #f1f5f9 !important;
+         color: #1e293b !important;
+      }
+      html.light .border-slate-700 { border-color: #cbd5e1; }
+      html.light .leaflet-tile { filter: brightness(0.95) contrast(1.05); }
+      html.light .bg-black,
+      html.light .from-black { background-color: #d1d5db; --tw-gradient-from: #d1d5db; }
+      html.light .via-black\/70 { --tw-gradient-to: rgba(209,213,219,0.7); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+      html.light .bg-slate-700 { background-color: #cbd5e1; }
+      html.light .hover\:bg-slate-700:hover { background-color: #94a3b8; }
+      html.light .hover\:bg-slate-600:hover { background-color: #94a3b8; }
+      html.light .p-8.rounded-2xl {
+         color: #1e293b
+      }
+      html.light .text-blue-400 { color: #3b82f6; }
+      html.light .recharts-text.recharts-cartesian-axis-tick-value {
+        fill: #334155 !important;
+      }
+      html.light .recharts-legend-item-text {
+         color: #334155 !important;
+      }
+      html.light .recharts-tooltip-wrapper {
+        background-color: #f1f5f9 !important;
+        border: 1px solid #cbd5e1 !important;
+      }
+      html.light .recharts-tooltip-label {
+        color: #1e293b !important;
+      }
+
+      /* Leaflet Plugin Theme Overrides */
+      .leaflet-routing-container, .leaflet-control-geocoder {
+        background-color: rgba(30, 41, 59, 0.8);
+        color: #e2e8f0;
+        border-radius: 8px;
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(71, 85, 105, 0.5);
+      }
+      .leaflet-routing-alt h2, .leaflet-routing-alt h3, .leaflet-control-geocoder-form input {
+        color: #e2e8f0 !important;
+      }
+      .leaflet-control-geocoder-form input {
+        background-color: rgba(51, 65, 85, 0.7) !important;
+        border: 1px solid rgba(71, 85, 105, 1) !important;
+      }
+      .leaflet-control-geocoder-icon {
+        background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2394a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>') !important;
+      }
+      html.light .leaflet-routing-container, html.light .leaflet-control-geocoder {
+        background-color: rgba(255, 255, 255, 0.8);
+        color: #1e293b;
+        border: 1px solid #cbd5e1;
+      }
+      html.light .leaflet-routing-alt h2, html.light .leaflet-routing-alt h3, html.light .leaflet-control-geocoder-form input {
+        color: #1e293b !important;
+      }
+       html.light .leaflet-control-geocoder-form input {
+        background-color: #f1f5f9 !important;
+        border: 1px solid #cbd5e1 !important;
+      }
+      
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+          filter: blur(4px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+          filter: blur(0);
+        }
+      }
+      .animate-fade-in-up {
+        animation: fadeInUp 1s ease-out forwards;
+      }
+      .fade-in-up-delay-1 { animation-delay: 0.3s; }
+      .fade-in-up-delay-2 { animation-delay: 0.6s; }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      .animate-app-fade-in {
+        animation: fadeIn 0.5s ease-in forwards;
+      }
+      
+      @keyframes breathing-glow {
+        0%, 100% {
+          filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.4));
+          transform: scale(1);
+        }
+        50% {
+          filter: drop-shadow(0 0 16px rgba(59, 130, 246, 0.7));
+          transform: scale(1.05);
+        }
+      }
+      .animate-breathing-glow {
+        animation: breathing-glow 3s ease-in-out infinite;
+      }
+
+      @keyframes pulse-shadow {
+          0%, 100% { box-shadow: 0 0 20px 0px rgba(59, 130, 246, 0.3); }
+          50% { box-shadow: 0 0 35px 10px rgba(59, 130, 246, 0.1); }
+      }
+      .animate-pulse-shadow {
+        animation: pulse-shadow 4s infinite;
+      }
+    </style>
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/client": "https://aistudiocdn.com/react-dom@^19.2.0/client",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.25.0",
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.44.4",
+    "leaflet": "https://aistudiocdn.com/leaflet@^1.9.4",
+    "recharts": "https://aistudiocdn.com/recharts@^3.2.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "leaflet-routing-machine": "https://aistudiocdn.com/leaflet-routing-machine@^3.2.12",
+    "leaflet-control-geocoder": "https://aistudiocdn.com/leaflet-control-geocoder@^3.3.1"
+  }
+}
+</script>
+  <link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
